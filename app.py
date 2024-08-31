@@ -2,9 +2,9 @@ from flask import Flask, request, jsonify, send_file, render_template
 from flask_cors import CORS
 import os
 import uuid
-import subprocess
 import threading
 import time
+from yt_dlp import YoutubeDL
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
@@ -50,17 +50,25 @@ def convert_to_mp3():
     print(f"Temporary video file: {video_file}")
     print(f"MP3 output file: {mp3_file}")
 
-    # Download video using yt-dlp
-    result = subprocess.run(["yt-dlp", "-o", video_file, youtube_url], capture_output=True, text=True)
-    if result.returncode != 0:
-        print(f"yt-dlp error: {result.stderr}")
-        return jsonify({"success": False, "error": "Failed to download video"})
+    # Download and convert video to MP3 using yt-dlp Python package
+    ydl_opts = {
+        'format': 'bestaudio/best',
+        'outtmpl': mp3_file,  # Directly output the MP3 file
+        'postprocessors': [{
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': 'mp3',
+            'preferredquality': '192',
+        }],
+    }
 
-    # Convert video to MP3 using FFmpeg
-    subprocess.run(["ffmpeg", "-i", video_file, "-c:a", "libmp3lame", mp3_file])
+    try:
+        with YoutubeDL(ydl_opts) as ydl:
+            ydl.download([youtube_url])
+    except Exception as e:
+        print(f"yt-dlp error: {e}")
+        return jsonify({"success": False, "error": "Failed to download video or convert to MP3"})
 
-    # Schedule both the video and MP3 files for removal after a delay
-    delayed_file_removal(video_file)  # Remove the temporary video file
+    # Schedule the MP3 file for removal after a delay
     delayed_file_removal(mp3_file, delay=60)  # Remove the MP3 file after a longer delay
 
     # Serve the MP3 file for download
