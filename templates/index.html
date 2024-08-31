@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube to MP3 Converter</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            text-align: center;
+            padding: 50px;
+        }
+        form {
+            margin-top: 20px;
+        }
+        input[type="text"] {
+            padding: 10px;
+            width: 300px;
+        }
+        input[type="submit"] {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        #status {
+            margin-top: 20px;
+            font-size: 18px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px; /* Add spacing between text and animation */
+        }
+        .loading-text {
+            margin-right: 10px; /* Adjust margin if necessary */
+        }
+        .dot-flashing {
+            position: relative;
+            width: 10px;
+            height: 10px;
+            border-radius: 5px;
+            background-color: #4CAF50; /* Changed color to green */
+            color: #4CAF50; /* Changed color to green */
+            animation: dot-flashing 1s infinite linear alternate; /* Kept original speed */
+            animation-delay: 0.5s;
+        }
+        .dot-flashing::before, .dot-flashing::after {
+            content: "";
+            display: inline-block;
+            position: absolute;
+            top: 0;
+        }
+        .dot-flashing::before {
+            left: -15px;
+            width: 10px;
+            height: 10px;
+            border-radius: 5px;
+            background-color: #4CAF50; /* Changed color to green */
+            color: #4CAF50; /* Changed color to green */
+            animation: dot-flashing 1s infinite linear alternate; /* Kept original speed */
+            animation-delay: 0s;
+        }
+        .dot-flashing::after {
+            left: 15px;
+            width: 10px;
+            height: 10px;
+            border-radius: 5px;
+            background-color: #4CAF50; /* Changed color to green */
+            color: #4CAF50; /* Changed color to green */
+            animation: dot-flashing 1s infinite linear alternate; /* Kept original speed */
+            animation-delay: 1s;
+        }
+        @keyframes dot-flashing {
+            0% {
+                background-color: #4CAF50; /* Changed color to green */
+            }
+            50%, 100% {
+                background-color: rgba(76, 175, 80, 0.2); /* Adjusted color to match green theme */
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>YouTube to MP3 Converter</h1>
+    <form id="convert-form">
+        <input type="text" id="youtube-url" placeholder="Enter YouTube URL" required>
+        <input type="submit" value="Convert and Download">
+    </form>
+    <div id="status"></div>
+    <script>
+        document.getElementById("convert-form").onsubmit = async function (e) {
+            e.preventDefault();
+            const url = document.getElementById("youtube-url").value;
+            const statusDiv = document.getElementById("status");
+
+            // Show the downloading text and the loader animation
+            statusDiv.innerHTML = `
+                <div class="loading-text">Downloading</div>
+                <div class="dot-flashing"></div>
+            `;
+
+            try {
+                const response = await fetch("/convert", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ url: url }),
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    // Redirect to the MP3 file URL to start the download
+                    window.location.href = data.link;
+
+                    // Hide the loader and show the completion message
+                    statusDiv.innerHTML = 'Download Complete!';
+                } else {
+                    statusDiv.innerHTML = 'Error converting video!';
+                }
+            } catch (error) {
+                console.error("Error:", error);
+                statusDiv.innerHTML = 'Failed to connect to the server. Please try again later.';
+            }
+        };
+    </script>
+</body>
+</html>
