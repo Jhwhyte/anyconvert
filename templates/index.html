@@ -116,7 +116,8 @@
                     // Hide the loader and show the completion message
                     statusDiv.innerHTML = 'Download Complete!';
                 } else {
-                    statusDiv.innerHTML = 'Error converting video!';
+                    // Show the error message from the server
+                    statusDiv.innerHTML = 'Error converting video: ' + data.error;
                 }
             } catch (error) {
                 console.error("Error:", error);
