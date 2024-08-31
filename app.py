@@ -59,8 +59,9 @@ def convert_to_mp3():
     # Convert video to MP3 using FFmpeg
     subprocess.run(["ffmpeg", "-i", video_file, "-c:a", "libmp3lame", mp3_file])
 
-    # Schedule the video file for removal after a delay (optional)
-    # delayed_file_removal(video_file)  # Uncomment to remove after delay
+    # Schedule both the video and MP3 files for removal after a delay
+    delayed_file_removal(video_file)  # Remove the temporary video file
+    delayed_file_removal(mp3_file, delay=60)  # Remove the MP3 file after a longer delay
 
     # Serve the MP3 file for download
     return jsonify({"success": True, "link": f"/download/{file_id}.mp3"})
