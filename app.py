@@ -13,6 +13,7 @@ DOWNLOAD_FOLDER = "downloads"
 if not os.path.exists(DOWNLOAD_FOLDER):
     os.makedirs(DOWNLOAD_FOLDER)
 
+
 def delayed_file_removal(file_path, delay=10):
     def remove_file():
         time.sleep(delay)
@@ -28,17 +29,20 @@ def delayed_file_removal(file_path, delay=10):
     thread = threading.Thread(target=remove_file)
     thread.start()
 
+
 @app.route("/", methods=["GET"])
 def index():
     return render_template("index.html")
+
 
 @app.route("/convert", methods=["POST"])
 def convert_to_mp3():
     data = request.json
     print(f"Received data: {data}")  # Debugging line
+
     youtube_url = data["url"]
     file_id = str(uuid.uuid4())
-    video_file = os.path.join(DOWNLOAD_FOLDER, f"{file_id}.mp4")
+    video_file = os.path.join(DOWNLOAD_FOLDER, f"{file_id}.mp4.webm")  # Adjust the file extension
     mp3_file = os.path.join(DOWNLOAD_FOLDER, f"{file_id}.mp3")
 
     # Debugging lines
@@ -53,21 +57,19 @@ def convert_to_mp3():
         return jsonify({"success": False, "error": "Failed to download video"})
 
     # Convert video to MP3 using FFmpeg
-    result = subprocess.run([r"C:\ffmpeg\ffmpeg-2024-08-28-git-b730defd52-full_build\bin\ffmpeg.exe", "-i", video_file, mp3_file], capture_output=True, text=True)
-    if result.returncode != 0:
-        print(f"FFmpeg error: {result.stderr}")
-        return jsonify({"success": False, "error": "Failed to convert video to MP3"})
+    subprocess.run(["ffmpeg", "-i", video_file, "-c:a", "libmp3lame", mp3_file])
 
-    # Remove the video file after conversion
-    os.remove(video_file)
+    # Schedule the video file for removal after a delay (optional)
+    # delayed_file_removal(video_file)  # Uncomment to remove after delay
 
     # Serve the MP3 file for download
     return jsonify({"success": True, "link": f"/download/{file_id}.mp3"})
 
+
 @app.route("/download/<filename>")
 def download_file(filename):
     file_path = os.path.join(DOWNLOAD_FOLDER, filename)
-    
+
     if not os.path.exists(file_path):
         return jsonify({"error": "File not found"}), 404
 
@@ -76,6 +78,7 @@ def download_file(filename):
 
     # Set the Content-Disposition header to force download
     return send_file(file_path, as_attachment=True)
+
 
 if __name__ == "__main__":
     app.run(debug=True)
