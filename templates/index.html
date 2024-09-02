@@ -18,7 +18,7 @@
             padding: 10px;
             width: 300px;
         }
-        input[type="submit"] {
+        input[type="button"] {
             padding: 10px 20px;
             background-color: #4CAF50;
             color: white;
@@ -85,15 +85,20 @@
 <body>
     <h1>YouTube to MP3 Converter</h1>
     <form id="convert-form">
-        <input type="text" id="youtube-url" placeholder="Enter YouTube URL" required>
-        <input type="submit" value="Convert and Download">
+        <input type="text" id="youtubeUrl" placeholder="Enter YouTube URL" required>
+        <input type="button" id="downloadButton" value="Convert and Download">
     </form>
     <div id="status"></div>
     <script>
-        document.getElementById("convert-form").onsubmit = async function (e) {
-            e.preventDefault();
-            const url = document.getElementById("youtube-url").value;
-            const statusDiv = document.getElementById("status");
+        document.getElementById('downloadButton').addEventListener('click', function() {
+            // Get the URL from the input field
+            const url = document.getElementById('youtubeUrl').value;
+            const statusDiv = document.getElementById('status');
+
+            if (!url) {
+                alert('Please enter a YouTube URL');
+                return;
+            }
 
             // Show the downloading text and the loader animation
             statusDiv.innerHTML = `
@@ -101,29 +106,51 @@
                 <div class="dot-flashing"></div>
             `;
 
-            try {
-                const response = await fetch("/convert", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ url: url }),
-                });
+            // Create a new XMLHttpRequest object
+            const xhr = new XMLHttpRequest();
+            // Define the type of request (POST) and the URL of the Flask endpoint
+            xhr.open('POST', 'http://127.0.0.1:5000/download', true);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            // Set the response type to 'blob' to handle binary data
+            xhr.responseType = 'blob';
 
-                const data = await response.json();
-                if (data.success) {
-                    // Redirect to the MP3 file URL to start the download
-                    window.location.href = data.link;
-
+            // Define what happens when the request is successful
+            xhr.onload = function() {
+                if (xhr.status === 200) {
+                    console.log('Download started');
+                    // Create a new URL for the blob
+                    const url = window.URL.createObjectURL(xhr.response);
+                    // Create an invisible anchor element
+                    const link = document.createElement('a');
+                    // Set the URL of the blob as the href of the anchor
+                    link.href = url;
+                    // Set the download attribute with the desired file name
+                    link.download = 'audio.mp3';
+                    // Append the link to the document
+                    document.body.appendChild(link);
+                    // Trigger the download by simulating a click on the link
+                    link.click();
+                    // Remove the link from the document after the download starts
+                    document.body.removeChild(link);
+                    // Revoke the object URL to free up resources
+                    window.URL.revokeObjectURL(url);
                     // Hide the loader and show the completion message
                     statusDiv.innerHTML = 'Download Complete!';
                 } else {
-                    // Show the error message from the server
-                    statusDiv.innerHTML = 'Error converting video: ' + data.error;
+                    console.error('Failed to download file:', xhr.statusText);
+                    statusDiv.innerHTML = 'Error converting video!';
                 }
-            } catch (error) {
-                console.error("Error:", error);
+            };
+            
+            // Define what happens if the request fails
+            xhr.onerror = function() {
+                console.error('An error occurred while trying to download the file.');
                 statusDiv.innerHTML = 'Failed to connect to the server. Please try again later.';
-            }
-        };
+            };
+            
+            // Send the request with the YouTube URL as JSON
+            xhr.send(JSON.stringify({ url: url }));
+        });
     </script>
 </body>
 </html>
