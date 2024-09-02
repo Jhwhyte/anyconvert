@@ -10,6 +10,7 @@
             background-color: #f4f4f4;
             text-align: center;
             padding: 50px;
+            position: relative;
         }
         form {
             margin-top: 20px;
@@ -28,22 +29,22 @@
         #status {
             margin-top: 20px;
             font-size: 18px;
+            height: 40px; /* Reserve space for the "Downloading" text and animation */
             display: flex;
             justify-content: center;
             align-items: center;
-            gap: 10px; /* Add spacing between text and animation */
+            gap: 10px;
         }
         .loading-text {
-            margin-right: 10px; /* Adjust margin if necessary */
+            margin-right: 10px;
         }
         .dot-flashing {
             position: relative;
             width: 10px;
             height: 10px;
             border-radius: 5px;
-            background-color: #4CAF50; /* Changed color to green */
-            color: #4CAF50; /* Changed color to green */
-            animation: dot-flashing 1s infinite linear alternate; /* Kept original speed */
+            background-color: #4CAF50;
+            animation: dot-flashing 1s infinite linear alternate;
             animation-delay: 0.5s;
         }
         .dot-flashing::before, .dot-flashing::after {
@@ -57,9 +58,8 @@
             width: 10px;
             height: 10px;
             border-radius: 5px;
-            background-color: #4CAF50; /* Changed color to green */
-            color: #4CAF50; /* Changed color to green */
-            animation: dot-flashing 1s infinite linear alternate; /* Kept original speed */
+            background-color: #4CAF50;
+            animation: dot-flashing 1s infinite linear alternate;
             animation-delay: 0s;
         }
         .dot-flashing::after {
@@ -67,18 +67,24 @@
             width: 10px;
             height: 10px;
             border-radius: 5px;
-            background-color: #4CAF50; /* Changed color to green */
-            color: #4CAF50; /* Changed color to green */
-            animation: dot-flashing 1s infinite linear alternate; /* Kept original speed */
+            background-color: #4CAF50;
+            animation: dot-flashing 1s infinite linear alternate;
             animation-delay: 1s;
         }
         @keyframes dot-flashing {
             0% {
-                background-color: #4CAF50; /* Changed color to green */
+                background-color: #4CAF50;
             }
             50%, 100% {
-                background-color: rgba(76, 175, 80, 0.2); /* Adjusted color to match green theme */
+                background-color: rgba(76, 175, 80, 0.2);
             }
+        }
+        /* Ko-fi button styling */
+        .kofi-button {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            top: 250px; /* Adjust this value to move the button up or down */
         }
     </style>
 </head>
@@ -89,9 +95,18 @@
         <input type="button" id="downloadButton" value="Convert and Download">
     </form>
     <div id="status"></div>
+
+    <!-- Ko-fi Button Code
+    <div class="kofi-button">
+        <a href="https://ko-fi.com/yourprofile" target="_blank">
+            <img src="https://cdn.ko-fi.com/cdn/kofi5.png?v=2" alt="Buy Me a Coffee" style="height: 50px;">
+        </a>
+    </div> -->
+
+    <script type='text/javascript' src='https://storage.ko-fi.com/cdn/widget/Widget_2.js'></script><script type='text/javascript'>kofiwidget2.init('Support Me on Ko-fi', '#29abe0', 'Z8Z612S9J3');kofiwidget2.draw();</script> 
+
     <script>
         document.getElementById('downloadButton').addEventListener('click', function() {
-            // Get the URL from the input field
             const url = document.getElementById('youtubeUrl').value;
             const statusDiv = document.getElementById('status');
 
@@ -100,55 +115,36 @@
                 return;
             }
 
-            // Show the downloading text and the loader animation
             statusDiv.innerHTML = `
                 <div class="loading-text">Downloading</div>
                 <div class="dot-flashing"></div>
             `;
 
-            // Create a new XMLHttpRequest object
             const xhr = new XMLHttpRequest();
-            // Define the type of request (POST) and the URL of the Flask endpoint
             xhr.open('POST', 'http://127.0.0.1:5000/download', true);
             xhr.setRequestHeader('Content-Type', 'application/json');
-            // Set the response type to 'blob' to handle binary data
             xhr.responseType = 'blob';
 
-            // Define what happens when the request is successful
             xhr.onload = function() {
                 if (xhr.status === 200) {
-                    console.log('Download started');
-                    // Create a new URL for the blob
                     const url = window.URL.createObjectURL(xhr.response);
-                    // Create an invisible anchor element
                     const link = document.createElement('a');
-                    // Set the URL of the blob as the href of the anchor
                     link.href = url;
-                    // Set the download attribute with the desired file name
                     link.download = 'audio.mp3';
-                    // Append the link to the document
                     document.body.appendChild(link);
-                    // Trigger the download by simulating a click on the link
                     link.click();
-                    // Remove the link from the document after the download starts
                     document.body.removeChild(link);
-                    // Revoke the object URL to free up resources
                     window.URL.revokeObjectURL(url);
-                    // Hide the loader and show the completion message
                     statusDiv.innerHTML = 'Download Complete!';
                 } else {
-                    console.error('Failed to download file:', xhr.statusText);
                     statusDiv.innerHTML = 'Error converting video!';
                 }
             };
-            
-            // Define what happens if the request fails
+
             xhr.onerror = function() {
-                console.error('An error occurred while trying to download the file.');
                 statusDiv.innerHTML = 'Failed to connect to the server. Please try again later.';
             };
-            
-            // Send the request with the YouTube URL as JSON
+
             xhr.send(JSON.stringify({ url: url }));
         });
     </script>
