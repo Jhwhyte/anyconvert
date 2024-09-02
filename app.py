@@ -7,6 +7,11 @@ import os
 import time
 import threading
 import uuid
+import psycopg2
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
@@ -23,7 +28,6 @@ def download_file():
     if not url:
         return jsonify({'error': 'No URL provided'}), 400
     
-    # Generate a unique identifier
     unique_id = str(uuid.uuid4())
     
     yt = YouTube(url, on_progress_callback=on_progress)
@@ -31,30 +35,44 @@ def download_file():
     
     ys = yt.streams.get_highest_resolution()
     
-    # Use unique ID to avoid conflicts
     mp4_path = f'{yt.title}_{unique_id}.mp4'
     mp3_path = f'{yt.title}_{unique_id}.mp3'
 
     ys.download(filename=mp4_path)
 
-    # Load the mp4 file
     with VideoFileClip(mp4_path) as video:
-        # Extract audio from video
         video.audio.write_audiofile(mp3_path)
     
     @after_this_request
     def cleanup(response):
         def remove_files():
-            time.sleep(1)  # Delay to ensure file is released
+            time.sleep(1)
             try:
                 os.remove(mp4_path)
                 os.remove(mp3_path)
             except Exception as e:
                 print(f'Error removing files: {e}')
         
-        # Start a new thread to remove the files
         threading.Thread(target=remove_files).start()
         return response
+    
+    if 'X-Forwarded-For' in request.headers:
+        user_ip = request.headers['X-Forwarded-For'].split(',')[0].strip()
+    else:
+        user_ip = request.remote_addr
+    
+    video_title = yt.title
+
+    DATABASE_URL = os.getenv('DATABASE_URL')
+    conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT INTO conversions (user_ip, video_url, video_title)
+        VALUES (%s, %s, %s)
+    ''', (user_ip, url, video_title))
+    conn.commit()
+    cursor.close()
+    conn.close()
     
     return send_file(
         mp3_path,
