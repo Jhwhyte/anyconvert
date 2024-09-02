@@ -25,8 +25,8 @@ def download_file():
         return jsonify({'error': 'No URL provided'}), 400
     
     unique_id = str(uuid.uuid4())
-    
-    yt = YouTube(url, on_progress_callback=on_progress)
+    yt = YouTube(url, use_oauth=True, allow_oauth_cache=True, on_progress_callback = on_progress)
+    # yt = YouTube(url, on_progress_callback=on_progress)
     print(yt.title)
     
     ys = yt.streams.get_highest_resolution()
