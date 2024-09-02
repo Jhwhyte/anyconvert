@@ -8,10 +8,6 @@ import time
 import threading
 import uuid
 import psycopg2
-from dotenv import load_dotenv
-
-# Load environment variables from .env file
-load_dotenv()
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
@@ -64,15 +60,18 @@ def download_file():
     video_title = yt.title
 
     DATABASE_URL = os.getenv('DATABASE_URL')
-    conn = psycopg2.connect(DATABASE_URL, sslmode='require')
-    cursor = conn.cursor()
-    cursor.execute('''
-        INSERT INTO conversions (user_ip, video_url, video_title)
-        VALUES (%s, %s, %s)
-    ''', (user_ip, url, video_title))
-    conn.commit()
-    cursor.close()
-    conn.close()
+    try:
+        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT INTO conversions (user_ip, video_url, video_title)
+            VALUES (%s, %s, %s)
+        ''', (user_ip, url, video_title))
+        conn.commit()
+        cursor.close()
+        conn.close()
+    except Exception as e:
+        print(f'Database error: {e}')
     
     return send_file(
         mp3_path,
