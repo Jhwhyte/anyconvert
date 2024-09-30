@@ -68,7 +68,7 @@ def download_file():
         return send_file(
             mp3_filename,
             as_attachment=True,
-            download_name=f"{mp3_filename}.mp3",  # Ensure proper filename with .mp3 extension
+            download_name=mp3_filename,  # Ensure proper filename with .mp3 extension
             mimetype="audio/mpeg"
         )
     
