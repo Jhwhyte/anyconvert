@@ -79,6 +79,13 @@
                 background-color: rgba(76, 175, 80, 0.2);
             }
         }
+        /* Ko-fi button styling */
+        .kofi-button {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            top: 250px; /* Adjust this value to move the button up or down */
+        }
     </style>
 </head>
 <body>
@@ -88,6 +95,15 @@
         <input type="button" id="downloadButton" value="Convert and Download">
     </form>
     <div id="status"></div>
+
+    <!-- Ko-fi Button Code
+    <div class="kofi-button">
+        <a href="https://ko-fi.com/yourprofile" target="_blank">
+            <img src="https://cdn.ko-fi.com/cdn/kofi5.png?v=2" alt="Buy Me a Coffee" style="height: 50px;">
+        </a>
+    </div> -->
+
+    <script type='text/javascript' src='https://storage.ko-fi.com/cdn/widget/Widget_2.js'></script><script type='text/javascript'>kofiwidget2.init('Support Me on Ko-fi', '#29abe0', 'Z8Z612S9J3');kofiwidget2.draw();</script> 
 
     <script>
         document.getElementById('downloadButton').addEventListener('click', function() {
@@ -144,6 +160,5 @@
             xhr.send(JSON.stringify({ url: url }));
         });
     </script>
-    
 </body>
 </html>
