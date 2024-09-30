@@ -2,12 +2,12 @@ from flask import Flask, send_file, request, jsonify, after_this_request, render
 from flask_cors import CORS
 from pytubefix import YouTube
 from pytubefix.cli import on_progress
-from moviepy.editor import VideoFileClip
 import os
 import time
 import threading
 import uuid
 import psycopg2
+import subprocess
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
@@ -20,63 +20,61 @@ def index():
 def download_file():
     data = request.json
     url = data.get('url')
-    
+
     if not url:
         return jsonify({'error': 'No URL provided'}), 400
-    
+
     unique_id = str(uuid.uuid4())
-    yt = YouTube(url, on_progress_callback = on_progress)
-    print(yt.title)
-    
+    yt = YouTube(url, 'MWEB', on_progress_callback=on_progress)
+    print(f"Attempting to download: {yt.title}")
+
     ys = yt.streams.get_audio_only()
-    
-    mp4_path = f'{yt.title}_{unique_id}.mp4'
-    mp3_path = f'{yt.title}_{unique_id}.mp3'
 
-    ys.download(mp3=True)
+    # Set the file name without extension
+    mp4_filename = f'{yt.title}_{unique_id}.mp4'
+    mp3_filename = f'{yt.title}_{unique_id}.mp3'
 
-    with VideoFileClip(mp4_path) as video:
-        video.audio.write_audiofile(mp3_path)
-    
-    @after_this_request
-    def cleanup(response):
-        def remove_files():
-            time.sleep(1)
-            try:
-                os.remove(mp4_path)
-                os.remove(mp3_path)
-            except Exception as e:
-                print(f'Error removing files: {e}')
-        
-        threading.Thread(target=remove_files).start()
-        return response
-    
-    if 'X-Forwarded-For' in request.headers:
-        user_ip = request.headers['X-Forwarded-For'].split(',')[0].strip()
-    else:
-        user_ip = request.remote_addr
-    
-    video_title = yt.title
-
-    DATABASE_URL = os.getenv('DATABASE_URL')
     try:
-        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
-        cursor = conn.cursor()
-        cursor.execute('''
-            INSERT INTO conversions (user_ip, video_url, video_title)
-            VALUES (%s, %s, %s)
-        ''', (user_ip, url, video_title))
-        conn.commit()
-        cursor.close()
-        conn.close()
-    except Exception as e:
-        print(f'Database error: {e}')
+        # Download the audio stream as MP4 (which may actually contain AAC audio)
+        ys.download(output_path='.', filename=mp4_filename)
+        print(f"Downloaded: {mp4_filename}")
+
+        # Convert the downloaded MP4 (AAC) file to proper MP3 using ffmpeg
+        if os.path.exists(mp4_filename):
+            ffmpeg_command = f"ffmpeg -i \"{mp4_filename}\" -vn -acodec libmp3lame \"{mp3_filename}\""
+            subprocess.run(ffmpeg_command, shell=True)
+            print(f"Converted to MP3: {mp3_filename}")
+
+            # Remove the original MP4 file after conversion
+            os.remove(mp4_filename)
+
+        if not os.path.exists(mp3_filename):
+            return jsonify({'error': 'Converted MP3 file not found'}), 500
+        
+        @after_this_request
+        def cleanup(response):
+            def remove_files():
+                time.sleep(1)
+                try:
+                    os.remove(mp3_filename)
+                    print(f'Removed file: {mp3_filename}')
+                except Exception as e:
+                    print(f'Error removing file: {e}')
+        
+            threading.Thread(target=remove_files).start()
+            return response
+        
+        # Send the converted MP3 file
+        return send_file(
+            mp3_filename,
+            as_attachment=True,
+            download_name=f"{yt.title}.mp3",  # Ensure proper filename with .mp3 extension
+            mimetype="audio/mpeg"
+        )
     
-    return send_file(
-        mp3_path,
-        as_attachment=True,
-        download_name=f'{yt.title}_{unique_id}.mp3'
-    )
+    except Exception as e:
+        print(f'Error during download: {e}')
+        return jsonify({'error': f'Error converting video: {str(e)}'}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
