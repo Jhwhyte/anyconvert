@@ -109,40 +109,28 @@
         document.getElementById('downloadButton').addEventListener('click', function() {
             const url = document.getElementById('youtubeUrl').value;
             const statusDiv = document.getElementById('status');
-    
+
             if (!url) {
                 alert('Please enter a YouTube URL');
                 return;
             }
-    
+
             statusDiv.innerHTML = `
                 <div class="loading-text">Downloading</div>
                 <div class="dot-flashing"></div>
             `;
-    
+
             const xhr = new XMLHttpRequest();
             xhr.open('POST', 'http://127.0.0.1:5000/download', true);
             xhr.setRequestHeader('Content-Type', 'application/json');
             xhr.responseType = 'blob';
-    
+
             xhr.onload = function() {
                 if (xhr.status === 200) {
-                    const disposition = xhr.getResponseHeader('Content-Disposition');
-                    let filename = 'audio.mp3'; // Default filename
-    
-                    // Extract filename from Content-Disposition header
-                    if (disposition && disposition.indexOf('attachment') !== -1) {
-                        const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|([^;\n]*))/;
-                        const matches = filenameRegex.exec(disposition);
-                        if (matches != null && matches[1]) {
-                            filename = matches[1].replace(/['"]/g, '');
-                        }
-                    }
-    
                     const url = window.URL.createObjectURL(xhr.response);
                     const link = document.createElement('a');
                     link.href = url;
-                    link.download = filename; // Use the extracted or default filename
+                    link.download = 'audio.mp3';
                     document.body.appendChild(link);
                     link.click();
                     document.body.removeChild(link);
@@ -152,11 +140,11 @@
                     statusDiv.innerHTML = 'Error converting video!';
                 }
             };
-    
+
             xhr.onerror = function() {
                 statusDiv.innerHTML = 'Failed to connect to the server. Please try again later.';
             };
-    
+
             xhr.send(JSON.stringify({ url: url }));
         });
     </script>
