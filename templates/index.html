@@ -29,7 +29,7 @@
         #status {
             margin-top: 20px;
             font-size: 18px;
-            height: 40px; /* Reserve space for the "Downloading" text and animation */
+            height: 40px;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -89,14 +89,8 @@
     </form>
     <div id="status"></div>
 
-    <!-- Ko-fi Button Code
-    <div class="kofi-button">
-        <a href="https://ko-fi.com/yourprofile" target="_blank">
-            <img src="https://cdn.ko-fi.com/cdn/kofi5.png?v=2" alt="Buy Me a Coffee" style="height: 50px;">
-        </a>
-    </div> -->
-
-    <script type='text/javascript' src='https://storage.ko-fi.com/cdn/widget/Widget_2.js'></script><script type='text/javascript'>kofiwidget2.init('Support Me on Ko-fi', '#29abe0', 'Z8Z612S9J3');kofiwidget2.draw();</script> 
+    <script type='text/javascript' src='https://storage.ko-fi.com/cdn/widget/Widget_2.js'></script>
+    <script type='text/javascript'>kofiwidget2.init('Support Me on Ko-fi', '#29abe0', 'Z8Z612S9J3');kofiwidget2.draw();</script> 
 
     <script>
         document.getElementById('downloadButton').addEventListener('click', function() {
@@ -114,7 +108,8 @@
             `;
     
             const xhr = new XMLHttpRequest();
-            xhr.open('POST', 'http://127.0.0.1:5000/download', true);
+            // Use a relative URL for the API endpoint instead of hardcoded localhost
+            xhr.open('POST', '/download', true);
             xhr.setRequestHeader('Content-Type', 'application/json');
             xhr.responseType = 'blob';
     
@@ -142,12 +137,14 @@
                     window.URL.revokeObjectURL(url);
                     statusDiv.innerHTML = 'Download Complete!';
                 } else {
-                    statusDiv.innerHTML = 'Error converting video!';
+                    statusDiv.textContent = 'Error converting video!';
+                    console.error('Error status:', xhr.status);
                 }
             };
     
-            xhr.onerror = function() {
-                statusDiv.innerHTML = 'Failed to connect to the server. Please try again later.';
+            xhr.onerror = function(e) {
+                console.error('XHR Error:', e);
+                statusDiv.textContent = 'Failed to connect to the server. Please try again later.';
             };
     
             xhr.send(JSON.stringify({ url: url }));
